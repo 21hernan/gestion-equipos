@@ -16,16 +16,13 @@
   <div class="container">
     <h2 class="text-center mb-4">Cargar equipos en camioneta</h2>
 
-    <!-- Formulario de clave -->
     <div id="login-form">
       <p>🔒 Ingresa la clave de acceso:</p>
       <input type="password" id="clave" class="form-control" placeholder="Clave secreta">
       <button class="btn btn-primary mt-2 w-100" onclick="validarClave()">Entrar</button>
     </div>
 
-    <!-- Interfaz principal (oculta al inicio) -->
     <div id="app" style="display:none;">
-
       <div id="qr-reader"></div>
       <button class="btn btn-secondary w-100 btn-scan" onclick="agregarManual()">+ Agregar QR manualmente</button>
 
@@ -51,11 +48,11 @@
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
-    // CONFIGURACIÓN: cambia esto al desplegar
-    const BACKEND_URL = "http://192.168.0.86:8000"; // Tu IP local + puerto
+    // 🔁 ¡CAMBIA ESTA URL CUANDO TENGAS TU BACKEND EN RENDER!
+    const BACKEND_URL = "https://gestion-equipos.onrender.com";
 
     let equipos = [];
-    const CLAVE_CORRECTA = "camioneta42"; // ← esta clave debe coincidir con tu backend real después
+    const CLAVE_CORRECTA = "camioneta42";
 
     function validarClave() {
       const clave = document.getElementById("clave").value;
@@ -79,11 +76,7 @@
             equipos.push(qr);
             actualizarLista();
           }
-          // Detener y reiniciar para escanear otro
           scanner.stop().then(() => iniciarEscaneo());
-        },
-        (err) => {
-          console.warn("Error de escaneo:", err);
         }
       );
     }
@@ -131,9 +124,13 @@
       })
       .then(res => res.json())
       .then(data => {
-        alert(`✅ ${data.mensaje}`);
-        equipos = [];
-        actualizarLista();
+        if (data.error) {
+          alert("❌ " + data.error);
+        } else {
+          alert(`✅ ${data.mensaje}`);
+          equipos = [];
+          actualizarLista();
+        }
       })
       .catch(err => {
         alert("❌ Error al conectar con el servidor");
@@ -141,14 +138,11 @@
       });
     }
 
-    // Si ya ingresó la clave antes, mostrar app directamente
     if (localStorage.getItem("acceso") === "autorizado") {
       document.getElementById("login-form").style.display = "none";
       document.getElementById("app").style.display = "block";
       iniciarEscaneo();
     }
-<!-- Forzar redeploy -->
   </script>
-
 </body>
 </html>
