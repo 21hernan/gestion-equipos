@@ -27,7 +27,7 @@ def login():
 @app.route('/equipos/<codigo_qr>')
 def get_equipo(codigo_qr):
     response = supabase.table('equipos').select('*').eq('codigo_qr_eq', codigo_qr).execute()
-    if response. and response.
+    if response.data and response.
         return jsonify(response.data[0])
     return jsonify({}), 404
 
@@ -42,7 +42,7 @@ def mover_lote():
 
     for qr in codigos_qr:
         equipo_resp = supabase.table('equipos').select('*').eq('codigo_qr_eq', qr).execute()
-        if not equipo_resp. or not equipo_resp.
+        if not equipo_resp.data or not equipo_resp.
             continue
         
         equipo = equipo_resp.data[0]
