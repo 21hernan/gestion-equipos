@@ -174,11 +174,15 @@
       });
     }
 
-    // Auto-login si ya autorizado
-    if (localStorage.getItem("acceso") === "autorizado") {
-      document.getElementById("login-form").style.display = "none";
-      document.getElementById("app").style.display = "block";
-    }
+
+	// Auto-login si ya autorizado
+	if (localStorage.getItem("acceso") === "autorizado") {
+	  document.getElementById("login-form").style.display = "none";
+	  document.getElementById("app").style.display = "block";
+	  iniciarEscaneo(); // ← ¡Esta línea es la clave!
+	}
+
+
 
     // ======= PÁGINA DE LISTADO =======
     async function cargarListado() {
