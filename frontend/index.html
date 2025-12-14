@@ -3,57 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mover Equipos - Camioneta</title>
+  <title>Gestión de Equipos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { padding: 15px; background: #f8f9fa; }
     #qr-reader { width: 100%; max-width: 400px; margin: 0 auto 20px; }
-    .equipo-item { background: white; padding: 10px; margin: 6px 0; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .equipo-item { background: white; padding: 10px; margin: 6px 0; border-radius: 6px; }
     .btn-scan { margin-top: 10px; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2 class="text-center mb-4">Cargar equipos en camioneta</h2>
 
-    <div id="login-form">
-      <p>🔒 Ingresa la clave de acceso:</p>
-      <input type="password" id="clave" class="form-control" placeholder="Clave secreta">
-      <button class="btn btn-primary mt-2 w-100" onclick="validarClave()">Entrar</button>
+    <!-- Página principal -->
+    <div id="pagina-principal" class="text-center">
+      <h2 class="mb-4">Gestión de Equipos</h2>
+      <button class="btn btn-primary w-100 mb-3" onclick="irAPagina('pagina-escanear')">
+        📷 Escanear equipos
+      </button>
+      <button class="btn btn-secondary w-100" onclick="irAPagina('pagina-listado'); cargarListado()">
+        📋 Ver listado de equipos
+      </button>
     </div>
 
-    <div id="app" style="display:none;">
-      <div id="qr-reader"></div>
-      <button class="btn btn-secondary w-100 btn-scan" onclick="agregarManual()">+ Agregar QR manualmente</button>
+    <!-- Página de escaneo (tu interfaz actual) -->
+    <div id="pagina-escanear" class="hidden">
+      <h2 class="text-center mb-3">Cargar equipos en camioneta</h2>
+      <button class="btn btn-outline-secondary mb-3" onclick="irAPagina('pagina-principal')">← Volver</button>
 
-      <h5 class="mt-4">Equipos escaneados (<span id="contador">0</span>):</h5>
-      <div id="lista-equipos"></div>
-
-      <div class="mt-3">
-        <label class="form-label"><strong>Seleccionar destino:</strong></label>
-        <select id="destino" class="form-select">
-          <option value="">-- Elige un destino --</option>
-          <option value="Almacén Central">Almacén Central</option>
-          <option value="Obra Norte">Obra Norte</option>
-          <option value="Taller Mecánico">Taller Mecánico</option>
-          <option value="Bodega Sur">Bodega Sur</option>
-          <option value="Camioneta">Camioneta</option>
-        </select>
+      <div id="login-form">
+        <p>🔒 Ingresa la clave de acceso:</p>
+        <input type="password" id="clave" class="form-control" placeholder="Clave secreta">
+        <button class="btn btn-primary mt-2 w-100" onclick="validarClave()">Entrar</button>
       </div>
 
-      <button class="btn btn-success w-100 mt-3" onclick="moverLote()">🚚 Mover todos los equipos</button>
-      <button class="btn btn-outline-secondary w-100 mt-2" onclick="limpiarTodo()">🗑️ Limpiar lista</button>
+      <div id="app" class="hidden">
+        <div id="qr-reader"></div>
+        <button class="btn btn-secondary w-100 btn-scan" onclick="agregarManual()">+ Agregar QR manualmente</button>
+
+        <h5 class="mt-4">Equipos escaneados (<span id="contador">0</span>):</h5>
+        <div id="lista-equipos"></div>
+
+        <div class="mt-3">
+          <label class="form-label"><strong>Seleccionar destino:</strong></label>
+          <select id="destino" class="form-select">
+            <option value="">-- Elige un destino --</option>
+            <option value="Almacén Central">Almacén Central</option>
+            <option value="Obra Norte">Obra Norte</option>
+            <option value="Taller Mecánico">Taller Mecánico</option>
+            <option value="Bodega Sur">Bodega Sur</option>
+            <option value="Camioneta">Camioneta</option>
+          </select>
+        </div>
+
+        <button class="btn btn-success w-100 mt-3" onclick="moverLote()">🚚 Mover todos los equipos</button>
+        <button class="btn btn-outline-secondary w-100 mt-2" onclick="limpiarTodo()">🗑️ Limpiar lista</button>
+      </div>
     </div>
+
+    <!-- Página de listado -->
+    <div id="pagina-listado" class="hidden">
+      <h2 class="text-center mb-3">Listado de Equipos</h2>
+      <button class="btn btn-outline-secondary mb-3" onclick="irAPagina('pagina-principal')">← Volver</button>
+
+      <input type="text" id="buscador" class="form-control mb-3" placeholder="Buscar por código QR o nombre..." onkeyup="filtrarListado()">
+
+      <div id="tabla-equipos" class="list-group">
+        <!-- Se llenará dinámicamente -->
+      </div>
+    </div>
+
   </div>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
-    // 🔁 ¡CAMBIA ESTA URL CUANDO TENGAS TU BACKEND EN RENDER!
+    // 🔁 CONFIGURACIÓN: Cambia esto por tu URL real de Render
     const BACKEND_URL = "https://gestion-equipos.onrender.com";
-
-    let equipos = [];
     const CLAVE_CORRECTA = "camioneta42";
+    let equiposEscaneados = [];
 
+    // Navegación entre páginas
+    function irAPagina(pagina) {
+      document.querySelectorAll('[id^="pagina-"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById(pagina).classList.remove('hidden');
+    }
+
+    // ======= PÁGINA DE ESCANEO =======
     function validarClave() {
       const clave = document.getElementById("clave").value;
       if (clave === CLAVE_CORRECTA) {
@@ -72,8 +108,8 @@
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (qr) => {
-          if (!equipos.includes(qr)) {
-            equipos.push(qr);
+          if (!equiposEscaneados.includes(qr)) {
+            equiposEscaneados.push(qr);
             actualizarLista();
           }
           scanner.stop().then(() => iniciarEscaneo());
@@ -83,16 +119,16 @@
 
     function agregarManual() {
       const qr = prompt("Escribe el código QR del equipo:");
-      if (qr && qr.trim() && !equipos.includes(qr.trim())) {
-        equipos.push(qr.trim());
+      if (qr && qr.trim() && !equiposEscaneados.includes(qr.trim())) {
+        equiposEscaneados.push(qr.trim());
         actualizarLista();
       }
     }
 
     function actualizarLista() {
-      document.getElementById("contador").textContent = equipos.length;
+      document.getElementById("contador").textContent = equiposEscaneados.length;
       const div = document.getElementById("lista-equipos");
-      div.innerHTML = equipos.map(qr => 
+      div.innerHTML = equiposEscaneados.map(qr => 
         `<div class="equipo-item">
           <span>${qr}</span>
           <button class="btn btn-sm btn-danger" onclick="eliminar('${qr}')">✕</button>
@@ -101,13 +137,13 @@
     }
 
     function eliminar(qr) {
-      equipos = equipos.filter(x => x !== qr);
+      equiposEscaneados = equiposEscaneados.filter(x => x !== qr);
       actualizarLista();
     }
 
     function limpiarTodo() {
       if (confirm("¿Borrar todos los equipos escaneados?")) {
-        equipos = [];
+        equiposEscaneados = [];
         actualizarLista();
       }
     }
@@ -115,12 +151,12 @@
     function moverLote() {
       const destino = document.getElementById("destino").value;
       if (!destino) return alert("⚠️ Selecciona un destino");
-      if (equipos.length === 0) return alert("⚠️ No hay equipos para mover");
+      if (equiposEscaneados.length === 0) return alert("⚠️ No hay equipos para mover");
 
       fetch(`${BACKEND_URL}/movimientos/lote`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ equipos: equipos, destino: destino })
+        body: JSON.stringify({ equipos: equiposEscaneados, destino: destino })
       })
       .then(res => res.json())
       .then(data => {
@@ -128,7 +164,7 @@
           alert("❌ " + data.error);
         } else {
           alert(`✅ ${data.mensaje}`);
-          equipos = [];
+          equiposEscaneados = [];
           actualizarLista();
         }
       })
@@ -138,11 +174,50 @@
       });
     }
 
+    // Auto-login si ya autorizado
     if (localStorage.getItem("acceso") === "autorizado") {
       document.getElementById("login-form").style.display = "none";
       document.getElementById("app").style.display = "block";
-      iniciarEscaneo();
     }
+
+    // ======= PÁGINA DE LISTADO =======
+    async function cargarListado() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/equipos-todos`);
+        const equipos = await res.json();
+        window.todosEquipos = equipos;
+        mostrarListado(equipos);
+      } catch (err) {
+        alert("❌ Error al cargar el listado");
+        console.error(err);
+      }
+    }
+
+    function mostrarListado(equipos) {
+      const contenedor = document.getElementById("tabla-equipos");
+      if (equipos.length === 0) {
+        contenedor.innerHTML = '<div class="alert alert-info">No hay equipos registrados.</div>';
+        return;
+      }
+      contenedor.innerHTML = equipos.map(eq => 
+        `<div class="list-group-item">
+          <strong>${eq.codigo_qr_eq}</strong><br>
+          <small>${eq.nombre_eq || 'Sin nombre'}</small>
+        </div>`
+      ).join('');
+    }
+
+    function filtrarListado() {
+      const texto = document.getElementById("buscador").value.toLowerCase();
+      const filtrados = window.todosEquipos.filter(eq => 
+        eq.codigo_qr_eq.toLowerCase().includes(texto) || 
+        (eq.nombre_eq && eq.nombre_eq.toLowerCase().includes(texto))
+      );
+      mostrarListado(filtrados);
+    }
+
+    // Agregar endpoint para listar todos los equipos
+    // (Este endpoint debe existir en tu backend)
   </script>
 </body>
 </html>
