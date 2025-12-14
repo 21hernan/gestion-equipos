@@ -15,9 +15,9 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 clave_secreta = os.getenv("CLAVE_SECRETA", "camioneta42")
 
-# Validar que las variables críticas existan
+# Depuración: imprimir variables si faltan
 if not supabase_url or not supabase_key:
-    print("⚠️ ADVERTENCIA: SUPABASE_URL o SUPABASE_KEY no están configuradas")
+    print("⚠️ ADVERTENCIA: Variables de Supabase incompletas")
     print("SUPABASE_URL =", repr(supabase_url))
     print("SUPABASE_KEY =", repr(supabase_key))
     # Usa valores ficticios para evitar que la app se caiga
@@ -28,7 +28,7 @@ if not supabase_url or not supabase_key:
 try:
     supabase = create_client(supabase_url, supabase_key)
 except Exception as e:
-    print("❌ Error al conectar con Supabase:", e)
+    print("❌ Error al crear cliente de Supabase:", e)
     supabase = None
 
 @app.route('/')
@@ -55,6 +55,17 @@ def get_equipo(codigo_qr):
         print("Error al obtener equipo:", e)
         return jsonify({"error": "Error interno"}), 500
 
+@app.route('/equipos-todos')
+def get_equipos_todos():
+    if not supabase:
+        return jsonify({"error": "Backend no configurado"}), 500
+    try:
+        response = supabase.table('equipos').select('*').execute()
+        return jsonify(response.data if response.data else [])
+    except Exception as e:
+        print("Error al listar equipos:", e)
+        return jsonify({"error": "Error interno"}), 500
+
 @app.route('/movimientos/lote', methods=['POST'])
 def mover_lote():
     if not supabase:
@@ -74,7 +85,7 @@ def mover_lote():
         try:
             equipo_resp = supabase.table('equipos').select('*').eq('codigo_qr_eq', qr).execute()
             if not equipo_resp.data or len(equipo_resp.data) == 0:
-                continue  # Ignora equipos no encontrados
+                continue
 
             equipo = equipo_resp.data[0]
             equipo_id = equipo['id_eq']
