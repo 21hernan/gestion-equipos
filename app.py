@@ -8,28 +8,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-# Configura CORS explícitamente para tu dominio de Vercel
+# CORS EXPLÍCITO para tu dominio de Vercel (¡sin espacios!)
 CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
 
-# Obtener variables de entorno
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_KEY")
 clave_secreta = os.getenv("CLAVE_SECRETA", "camioneta42")
 
-# Depuración: imprimir si faltan variables
 if not supabase_url or not supabase_key:
-    print("⚠️ ADVERTENCIA: SUPABASE_URL o SUPABASE_KEY no están definidas")
-    print("SUPABASE_URL =", repr(supabase_url))
-    print("SUPABASE_KEY =", repr(supabase_key))
-    # Usa valores ficticios para evitar que la app se rompa
     supabase_url = "https://dummy.supabase.co"
     supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy"
 
-# Crear cliente de Supabase
 try:
     supabase = create_client(supabase_url, supabase_key)
 except Exception as e:
-    print("❌ Error al crear cliente de Supabase:", e)
     supabase = None
 
 @app.route('/')
@@ -53,7 +45,6 @@ def get_equipo(codigo_qr):
             return jsonify(response.data[0])
         return jsonify({}), 404
     except Exception as e:
-        print("Error al obtener equipo:", e)
         return jsonify({"error": "Error interno"}), 500
 
 @app.route('/equipos-todos')
@@ -64,7 +55,6 @@ def get_equipos_todos():
         response = supabase.table('equipos').select('*').execute()
         return jsonify(response.data if response.data else [])
     except Exception as e:
-        print("Error al listar equipos:", e)
         return jsonify({"error": "Error interno"}), 500
 
 @app.route('/movimientos/lote', methods=['POST'])
@@ -73,7 +63,7 @@ def mover_lote():
         return jsonify({"error": "Backend no configurado"}), 500
 
     data = request.json
-    if not data:
+    if not 
         return jsonify({"error": "Cuerpo de la solicitud vacío"}), 400
 
     codigos_qr = data.get('equipos', [])
@@ -86,16 +76,14 @@ def mover_lote():
         try:
             equipo_resp = supabase.table('equipos').select('*').eq('codigo_qr_eq', qr).execute()
             if not equipo_resp.data or len(equipo_resp.data) == 0:
-                continue  # Salta si no existe el equipo
+                continue
 
             equipo = equipo_resp.data[0]
             equipo_id = equipo['id_eq']
             ubicacion_actual = equipo['ubicacion_actual_eq']
 
-            # Marcar todos los movimientos anteriores como 'B' (histórico)
             supabase.table('movimientos').update({'estado_mv': 'B'}).eq('equipo_id_mv', equipo_id).execute()
 
-            # Insertar nuevo movimiento con estado 'A' (activo)
             nuevo_mov = {
                 'equipo_id_mv': equipo_id,
                 'ubicacion_origen_mv': ubicacion_actual,
@@ -106,15 +94,13 @@ def mover_lote():
             }
             supabase.table('movimientos').insert(nuevo_mov).execute()
 
-            # Actualizar ubicación actual del equipo
             supabase.table('equipos').update({'ubicacion_actual_eq': destino}).eq('id_eq', equipo_id).execute()
 
         except Exception as e:
-            print(f"Error al mover equipo {qr}:", e)
-            continue  # No detiene todo si falla un equipo
+            continue
 
     return jsonify({"mensaje": f"{len(codigos_qr)} equipos movidos a {destino}"})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8000))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
