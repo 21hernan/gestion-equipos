@@ -11,6 +11,7 @@
     .equipo-item { background: white; padding: 10px; margin: 6px 0; border-radius: 6px; }
     .btn-scan { margin-top: 10px; }
     .hidden { display: none; }
+    .list-item-row { display: flex; justify-content: space-between; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -67,7 +68,7 @@
       <h2 class="text-center mb-3">Listado de Equipos</h2>
       <button class="btn btn-outline-secondary mb-3" onclick="irAPagina('pagina-principal')">← Volver</button>
 
-      <input type="text" id="buscador" class="form-control mb-3" placeholder="Buscar por código QR o nombre..." onkeyup="filtrarListado()">
+      <input type="text" id="buscador" class="form-control mb-3" placeholder="Buscar por código QR, nombre o depósito..." onkeyup="filtrarListado()">
 
       <div id="tabla-equipos" class="list-group">
         <!-- Se llenará dinámicamente -->
@@ -200,8 +201,12 @@
       }
       contenedor.innerHTML = equipos.map(eq => 
         `<div class="list-group-item">
-          <strong>${eq.codigo_qr_eq}</strong><br>
-          <small>${eq.nombre_eq || 'Sin nombre'}</small>
+          <div><strong>${eq.codigo_qr_eq}</strong></div>
+          <div><small>${eq.nombre_eq || 'Sin nombre'}</small></div>
+          <div class="list-item-row">
+            <span>Depósito:</span>
+            <strong>${eq.ubicacion_actual_eq || '—'}</strong>
+          </div>
         </div>`
       ).join('');
     }
@@ -210,7 +215,8 @@
       const texto = document.getElementById("buscador").value.toLowerCase();
       const filtrados = window.todosEquipos.filter(eq => 
         eq.codigo_qr_eq.toLowerCase().includes(texto) || 
-        (eq.nombre_eq && eq.nombre_eq.toLowerCase().includes(texto))
+        (eq.nombre_eq && eq.nombre_eq.toLowerCase().includes(texto)) ||
+        (eq.ubicacion_actual_eq && eq.ubicacion_actual_eq.toLowerCase().includes(texto))
       );
       mostrarListado(filtrados);
     }
