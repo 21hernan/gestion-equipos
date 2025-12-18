@@ -36,7 +36,7 @@ def equipos_todos():
         return jsonify({"error": "No conectado a Supabase"}), 500
     try:
         # Ajusta 'A' si usas otro valor en tu BD
-        response = supabase.table('equipos').select('*').eq('estado_eq', 'A').execute()
+        response = supabase.table('equipos').select('*').eq('estado_eq', 'Activo').execute()
         return jsonify(response.data or [])
     except Exception as e:
         print("❌ Error en /equipos-todos:", e)
