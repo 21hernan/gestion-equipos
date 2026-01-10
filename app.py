@@ -1,49 +1,17 @@
 import os
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from supabase import create_client
+from flask import Flask, jsonify
 
 app = Flask(__name__)
-CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
-
-# Leer variables de entorno (obligatorias en Render)
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-CLAVE_SECRETA = os.environ.get("CLAVE_SECRETA", "camioneta42")
-
-# Conectar a Supabase solo si las claves están presentes
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as e:
-        print("❌ Error al crear cliente de Supabase:", e)
 
 @app.route('/')
 def home():
     return jsonify({"mensaje": "Backend activo"})
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    if data and data.get('clave') == CLAVE_SECRETA:
-        return jsonify({"token": "ok"})
-    return jsonify({"error": "Clave incorrecta"}), 401
-
 @app.route('/equipos-todos')
-def equipos_todos():
-    if not supabase:
-        return jsonify({"error": "No conectado a Supabase"}), 500
-    try:
-        # Ajusta 'A' si usas otro valor en tu BD
-        #response = supabase.table('equipos').select('*').eq('estado_eq', 'Activo').execute()
-        
-        response = supabase.table('equipos').select('*').execute()
-        
-        return jsonify(response.data or [])
-    except Exception as e:
-        print("❌ Error en /equipos-todos:", e)
-        return jsonify([])
+def equipos():
+    return jsonify([
+        {"codigo_qr_eq": "QR001", "nombre_eq": "Teclado Mause", "ubicacion_actual_eq": "Almacén Central"}
+    ])
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
