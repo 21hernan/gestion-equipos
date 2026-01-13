@@ -1,27 +1,46 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from supabase import create_client
 
 app = Flask(__name__)
+# Permitir solo tu frontend de Vercel
 CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
 
-# Credenciales desde Render
-url = os.environ.get("https://dejsrxnqpgespknupkid.supabase.co")
-key = os.environ.get("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlanNyeG5xcGdlc3BrbnVwa2lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MDQ0NjQsImV4cCI6MjA4MTA4MDQ2NH0.miCWSNoVy17oyYm6VjFbIPVCCgqunGxw6ne4f5m5_Uc")
+# Leer variables de entorno desde Render
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+CLAVE_SECRETA = os.environ.get("CLAVE_SECRETA", "camioneta42")
 
-# Crear cliente Supabase
-supabase = create_client(url, key) if url and key else None
+# Conectar a Supabase
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print("❌ Error al crear cliente de Supabase:", e)
+
+@app.route('/')
+def home():
+    return jsonify({"mensaje": "Backend activo"})
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    if data and data.get('clave') == CLAVE_SECRETA:
+        return jsonify({"token": "ok"})
+    return jsonify({"error": "Clave incorrecta"}), 401
 
 @app.route('/equipos-todos')
 def equipos_todos():
     if not supabase:
-        return jsonify({"error": "Faltan credenciales de Supabase"}), 500
+        return jsonify({"error": "No conectado a Supabase"}), 500
     try:
-        # Traer TODOS los equipos (sin filtro)
-        data = supabase.table('equipos').select('*').execute().data
-        return jsonify(data)
+        # Usar from_() → método correcto para tablas en Supabase
+        response = supabase.from_('equipos').select('*').eq('estado_eq', 'A').execute()
+        return jsonify(response.data or [])
     except Exception as e:
+        print("❌ Error en /equipos-todos:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
