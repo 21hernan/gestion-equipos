@@ -1,24 +1,17 @@
 import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from supabase import create_client
 
 app = Flask(__name__)
-# Permitir solo tu dominio de Vercel
 CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
 
-# Leer variables de entorno
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-CLAVE_SECRETA = os.environ.get("CLAVE_SECRETA", "camioneta42")
-
-# Conectar a Supabase
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as e:
-        print("❌ Error al conectar con Supabase:", e)
+# Datos simulados (equivalentes a tu tabla 'equipos')
+EQUIPOS = [
+    {"id_eq": "1", "codigo_qr_eq": "QR001", "nombre_eq": "Teclado Mause", "ubicacion_actual_eq": "Almacén Central", "estado_eq": "A"},
+    {"id_eq": "2", "codigo_qr_eq": "QR002", "nombre_eq": "Monitor HP", "ubicacion_actual_eq": "Almacén Central", "estado_eq": "A"},
+    {"id_eq": "3", "codigo_qr_eq": "QR003", "nombre_eq": "CPU Dell", "ubicacion_actual_eq": "Almacén Central", "estado_eq": "A"},
+    {"id_eq": "4", "codigo_qr_eq": "QR004", "nombre_eq": "Impresora Epson", "ubicacion_actual_eq": "Almacén Central", "estado_eq": "A"}
+]
 
 @app.route('/')
 def home():
@@ -27,21 +20,13 @@ def home():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
-    if data and data.get('clave') == CLAVE_SECRETA:
+    if data and data.get('clave') == "camioneta42":
         return jsonify({"token": "ok"})
     return jsonify({"error": "Clave incorrecta"}), 401
 
 @app.route('/equipos-todos')
 def equipos_todos():
-    if not supabase:
-        return jsonify({"error": "No conectado a Supabase"}), 500
-    try:
-        # ⚠️ SIN FILTRO: trae TODOS los registros de la tabla 'equipos'
-        response = supabase.table('equipos').select('*').execute()
-        return jsonify(response.data or [])
-    except Exception as e:
-        print("❌ Error en /equipos-todos:", e)
-        return jsonify([])
+    return jsonify(EQUIPOS)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
