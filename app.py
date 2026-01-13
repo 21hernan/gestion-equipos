@@ -4,7 +4,7 @@ from flask_cors import CORS
 from supabase import create_client
 
 app = Flask(__name__)
-# Permitir solo tu frontend de Vercel
+# Permitir solo tu dominio de Vercel
 CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
 
 # Leer variables de entorno desde Render
@@ -18,7 +18,7 @@ if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
-        print("❌ Error al crear cliente de Supabase:", e)
+        print("❌ Error al conectar con Supabase:", e)
 
 @app.route('/')
 def home():
@@ -36,8 +36,8 @@ def equipos_todos():
     if not supabase:
         return jsonify({"error": "No conectado a Supabase"}), 500
     try:
-        # Usar from_() → método correcto para tablas en Supabase
-        response = supabase.from_('equipos').select('*').eq('estado_eq', 'A').execute()
+        # ⚠️ SIN FILTRO: trae TODOS los equipos
+        response = supabase.from_('equipos').select('*').execute()
         return jsonify(response.data or [])
     except Exception as e:
         print("❌ Error en /equipos-todos:", e)
