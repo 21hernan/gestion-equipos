@@ -63,7 +63,15 @@ def registrar_movimiento_lote():
     if not data or not data.get('equipos') or not data.get('destino'):
         return jsonify({"error": "Datos inválidos"}), 400
     try:
+        # Aceptar ambos formatos: ["QR001"] o [{"codigo_qr": "QR001"}]
+        equipos = []
         for equipo in data['equipos']:
+            if isinstance(equipo, str):
+                equipos.append({"codigo_qr": equipo})
+            else:
+                equipos.append(equipo)
+
+        for equipo in equipos:
             equipo_db = supabase.from_('equipos').select('*').eq('codigo_qr_eq', equipo['codigo_qr']).execute()
             if not equipo_db.data:
                 continue
