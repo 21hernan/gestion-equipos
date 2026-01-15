@@ -8,84 +8,56 @@ CORS(app, origins=["https://gestion-equipos-alpha.vercel.app"])
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-CLAVE_SECRETA = os.environ.get("CLAVE_SECRETA", "camioneta42")
 
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    except Exception as e:
-        print("❌ Error al conectar con Supabase:", e)
-
-@app.route('/')
-def home():
-    return jsonify({"mensaje": "Backend activo"})
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    if data and data.get('clave') == CLAVE_SECRETA:
-        return jsonify({"token": "ok"})
-    return jsonify({"error": "Clave incorrecta"}), 401
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 @app.route('/equipos-todos')
 def equipos_todos():
     if not supabase:
-        return jsonify({"error": "No conectado a Supabase"}), 500
+        return jsonify({"error": "Backend no configurado"}), 500
     try:
-        response = supabase.from_('equipos').select('*').execute()
-        return jsonify(response.data or [])
+        data = supabase.from_('equipos').select('*').execute().data
+        return jsonify(data)
     except Exception as e:
-        print("❌ Error en /equipos-todos:", e)
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/escanear', methods=['POST'])
-def escanear_qr():
-    if not supabase:
-        return jsonify({"error": "No conectado a Supabase"}), 500
-    data = request.get_json()
-    if not data or not data.get('codigo_qr'):
-        return jsonify({"error": "Falta código QR"}), 400
-    try:
-        response = supabase.from_('equipos').select('*').eq('codigo_qr_eq', data['codigo_qr']).execute()
-        if not response.data:
-            return jsonify({"error": "Equipo no encontrado"}), 404
-        return jsonify(response.data[0])
-    except Exception as e:
-        print("❌ Error en /escanear:", e)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/movimientos/lote', methods=['POST'])
 def registrar_movimiento_lote():
     if not supabase:
-        return jsonify({"error": "No conectado a Supabase"}), 500
+        return jsonify({"error": "Backend no configurado"}), 500
+    
     data = request.get_json()
-    if not data or not data.get('equipos') or not data.get('destino'):
-        return jsonify({"error": "Datos inválidos"}), 400
-    try:
-        # Aceptar ambos formatos: ["QR001"] o [{"codigo_qr": "QR001"}]
-        equipos = []
-        for equipo in data['equipos']:
-            if isinstance(equipo, str):
-                equipos.append({"codigo_qr": equipo})
-            else:
-                equipos.append(equipo)
+    if not data or not isinstance(data.get('equipos'), list) or not data.get('destino'):
+        return jsonify({"error": "Faltan datos: 'equipos' (lista) y 'destino'"}), 400
 
-        for equipo in equipos:
-            equipo_db = supabase.from_('equipos').select('*').eq('codigo_qr_eq', equipo['codigo_qr']).execute()
-            if not equipo_db.data:
+    try:
+        for item in data['equipos']:
+            # Aceptar tanto "QR001" como {"codigo_qr": "QR001"}
+            codigo = item if isinstance(item, str) else item.get('codigo_qr')
+            if not codigo:
                 continue
-            movimiento = {
-                "equipo_id_mv": equipo_db.data[0].get("id_eq"),
-                "ubicacion_origen_mv": equipo_db.data[0].get("ubicacion_actual_eq"),
-                "ubicacion_destino_mv": data.get("destino"),
-                "usuario_mv": data.get("usuario", "operario"),
+
+            # Buscar equipo
+            equipo = supabase.from_('equipos').select('*').eq('codigo_qr_eq', codigo).execute().data
+            if not equipo:
+                continue
+
+            # Registrar movimiento
+            supabase.from_('movimientos').insert({
+                "equipo_id_mv": equipo[0]['id_eq'],
+                "ubicacion_origen_mv": equipo[0]['ubicacion_actual_eq'],
+                "ubicacion_destino_mv": data['destino'],
+                "usuario_mv": data.get('usuario', 'operario'),
                 "estado_mv": "A"
-            }
-            supabase.from_('movimientos').insert(movimiento).execute()
-        return jsonify({"mensaje": "Movimientos registrados"})
+            }).execute()
+
+            # Actualizar ubicación actual del equipo
+            supabase.from_('equipos').update({
+                "ubicacion_actual_eq": data['destino']
+            }).eq('codigo_qr_eq', codigo).execute()
+
+        return jsonify({"mensaje": "Movimientos registrados y ubicaciones actualizadas"})
     except Exception as e:
-        print("❌ Error en /movimientos/lote:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
