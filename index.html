@@ -41,6 +41,7 @@
 
       <div id="app" class="hidden">
         <div id="qr-reader"></div>
+        <button class="btn btn-info w-100 mb-2" onclick="abrirCamaraDirecto()">📷 Abrir Cámara</button>
         <button class="btn btn-secondary w-100 btn-scan" onclick="agregarManual()">+ Agregar QR manualmente</button>
 
         <h5 class="mt-4">Equipos escaneados (<span id="contador">0</span>):</h5>
@@ -102,7 +103,7 @@
       }
     }
 
-    
+
     function iniciarEscaneo() {
       const scanner = new Html5Qrcode("qr-reader");
       scanner.start(
@@ -221,6 +222,27 @@
       );
       mostrarListado(filtrados);
     }
+    
+
+  function abrirCamaraDirecto() {
+    const video = document.createElement('video');
+    video.style.width = "100%";
+    video.style.maxHeight = "300px";
+    video.style.background = "black";
+    video.autoplay = true;
+    video.playsInline = true;
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        video.srcObject = stream;
+        document.getElementById("qr-reader").innerHTML = "";
+        document.getElementById("qr-reader").appendChild(video);
+      })
+      .catch(err => {
+        alert("❌ No se pudo acceder a la cámara: " + err.message);
+      });
+  }
+
   </script>
 </body>
 </html>
