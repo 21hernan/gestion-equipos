@@ -41,7 +41,7 @@
 
       <div id="app" class="hidden">
         <div id="qr-reader"></div>
-        <button class="btn btn-info w-100 mb-2" onclick="abrirCamaraDirecto()">📷 Abrir Cámara</button>
+        <button class="btn btn-info w-100 mb-2" onclick="iniciarEscaneoManual()">📷 Iniciar Escaneo QR</button>
         <button class="btn btn-secondary w-100 btn-scan" onclick="agregarManual()">+ Agregar QR manualmente</button>
 
         <h5 class="mt-4">Equipos escaneados (<span id="contador">0</span>):</h5>
@@ -81,9 +81,10 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script>
     // 🔁 URL EXACTA DEL BACKEND (¡sin espacios!)
-    const BACKEND_URL = "https://gestion-equipos-lly1.onrender.com";  // ✅ Corregido: sin espacios
+    const BACKEND_URL = "https://gestion-equipos-lly1.onrender.com";
     const CLAVE_CORRECTA = "camioneta42";
     let equiposEscaneados = [];
+    let scannerActivo = false;
 
     function irAPagina(pagina) {
       document.querySelectorAll('[id^="pagina-"]').forEach(el => el.classList.add('hidden'));
@@ -97,15 +98,20 @@
         localStorage.setItem("acceso", "autorizado");
         document.getElementById("login-form").style.display = "none";
         document.getElementById("app").style.display = "block";
-        iniciarEscaneo();
+        // No se inicia automáticamente → espera al botón
       } else {
         alert("❌ Clave incorrecta");
       }
     }
 
-
     function iniciarEscaneo() {
+      if (scannerActivo) return;
+      const qrReader = document.getElementById("qr-reader");
+      if (!qrReader || qrReader.children.length > 0) return;
+
       const scanner = new Html5Qrcode("qr-reader");
+      scannerActivo = true;
+
       scanner.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -114,9 +120,24 @@
             equiposEscaneados.push(qr);
             actualizarLista();
           }
-          scanner.stop().then(() => iniciarEscaneo());
+          scanner.stop().then(() => {
+            scannerActivo = false;
+            setTimeout(iniciarEscaneo, 1000);
+          });
+        },
+        (err) => {
+          console.warn("Error de escaneo:", err);
         }
-      );
+      ).catch(err => {
+        alert("❌ No se pudo iniciar el escáner QR");
+        scannerActivo = false;
+      });
+    }
+
+    function iniciarEscaneoManual() {
+      const qrReader = document.getElementById("qr-reader");
+      qrReader.innerHTML = ""; // Limpiar cualquier contenido previo
+      iniciarEscaneo();
     }
 
     function agregarManual() {
@@ -147,6 +168,8 @@
       if (confirm("¿Borrar todos los equipos escaneados?")) {
         equiposEscaneados = [];
         actualizarLista();
+        document.getElementById("qr-reader").innerHTML = "";
+        scannerActivo = false;
       }
     }
 
@@ -168,6 +191,8 @@
           alert(`✅ ${data.mensaje}`);
           equiposEscaneados = [];
           actualizarLista();
+          document.getElementById("qr-reader").innerHTML = "";
+          scannerActivo = false;
         }
       })
       .catch(err => {
@@ -179,7 +204,6 @@
     if (localStorage.getItem("acceso") === "autorizado") {
       document.getElementById("login-form").style.display = "none";
       document.getElementById("app").style.display = "block";
-      iniciarEscaneo();
     }
 
     // ======= PÁGINA DE LISTADO =======
@@ -222,27 +246,6 @@
       );
       mostrarListado(filtrados);
     }
-    
-
-  function abrirCamaraDirecto() {
-    const video = document.createElement('video');
-    video.style.width = "100%";
-    video.style.maxHeight = "300px";
-    video.style.background = "black";
-    video.autoplay = true;
-    video.playsInline = true;
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => {
-        video.srcObject = stream;
-        document.getElementById("qr-reader").innerHTML = "";
-        document.getElementById("qr-reader").appendChild(video);
-      })
-      .catch(err => {
-        alert("❌ No se pudo acceder a la cámara: " + err.message);
-      });
-  }
-
   </script>
 </body>
 </html>
